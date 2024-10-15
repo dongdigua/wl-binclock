@@ -1,0 +1,7 @@
+[package]
+name = "my_wl_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+smithay-client-toolkit = "0.19.2"

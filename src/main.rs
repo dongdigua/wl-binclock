@@ -107,12 +107,18 @@ impl Dispatch<WlBuffer, MyUserData> for MyApp {
 impl Dispatch<XdgWmBase, MyUserData> for MyApp {
     fn event(
         _state: &mut Self,
-        _proxy: &XdgWmBase,
-        _event: xdg_wm_base::Event,
+        proxy: &XdgWmBase,
+        event: xdg_wm_base::Event,
         _data: &MyUserData,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
+        match event {
+            xdg_wm_base::Event::Ping { serial } => {
+                proxy.pong(serial);
+            }
+            _ => (),
+        }
     }
 }
 
@@ -167,7 +173,7 @@ fn main() {
         .bind(&event_queue.handle(), 1..=6, MyUserData)
         .unwrap();
     let xdg_surface = xdg_wm_base.get_xdg_surface(&wl_surface, &event_queue.handle(), MyUserData);
-    //这一行必须要不然没有窗口显示
+    //让他显示到最上层,不然我们啥也看不到。
     let xdg_toplevel = xdg_surface.get_toplevel(&event_queue.handle(), MyUserData);
     xdg_toplevel.set_title(String::from("test"));
 
@@ -211,6 +217,16 @@ fn main() {
     //如果这个字节数组不是32位的整数倍,pre和end就会多出来几个字节。
     let (_pre, middle, _end) = unsafe { mmap.align_to_mut::<u32>() };
     middle.fill(0xFF00FFFF);
+    let group = 10;
+    for h in 0..HEIGHT {
+        for w in 0..WIDTH {
+            if ((w - w % group) / group + (h - h % group) / group) % 2 == 0 {
+                middle[(w + h * WIDTH) as usize] = 0xFFFF0000;
+            } else {
+                middle[(w + h * WIDTH) as usize] = 0xFF0000FF;
+            }
+        }
+    }
 
     //开始倾倒：把这桶buffer油漆放到这张surface纸上
     wl_surface.attach(Some(&wl_buffer), 0, 0);

@@ -32,24 +32,27 @@ struct MyApp {
     exit: bool,
     wl_surface: WlSurface,
     shm: Shm,
+    has_draw: bool,
+    width: u32,
+    height: u32,
 }
 
 impl MyApp {
-    const WIDTH: i32 = 600;
-    const HEIGHT: i32 = 400;
-    const PIXEL_SIZE: i32 = 4;
-    const STRIDE: i32 = Self::WIDTH * Self::PIXEL_SIZE;
-    const STORE_SIZE: i32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
+    const WIDTH: u32 = 600;
+    const HEIGHT: u32 = 400;
+    const PIXEL_SIZE: u32 = 4;
+    const STRIDE: u32 = Self::WIDTH * Self::PIXEL_SIZE;
+    const STORE_SIZE: u32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
 
-    fn draw(&mut self) {
-        //开始画画
-        let buffer = draw::Painter::draw(&self);
-        //开始倾倒：把这桶buffer油漆放到这张surface纸上
-        buffer.attach_to(&self.wl_surface).unwrap();
-        //告诉服务端这张纸需要更新
-        self.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-        //告诉Server端倾倒完成
-        self.wl_surface.commit();
+    fn new(wl_surface: WlSurface, shm: Shm) -> Self {
+        MyApp {
+            exit: false,
+            wl_surface,
+            shm,
+            has_draw: false,
+            width: Self::WIDTH,
+            height: Self::HEIGHT,
+        }
     }
 }
 
@@ -165,14 +168,22 @@ impl Dispatch<XdgSurface, MyUserData> for MyApp {
     ) {
         match event {
             xdg_surface::Event::Configure { serial } => {
-                //配置确认
+                if state.has_draw {
+                    return;
+                }
                 proxy.ack_configure(serial);
                 //开始画画
-                state.draw();
+                let buffer = draw::Painter::draw(&state);
+                //开始倾倒：把这桶buffer油漆放到这张surface纸上
+                buffer.attach_to(&state.wl_surface).unwrap();
+                //告诉服务端这张纸需要更新
+                state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+                //告诉Server端倾倒完成
+                state.wl_surface.commit();
+                state.has_draw = true;
             }
             _ => (),
         }
-        println!("XdgSurface:{:?}", event);
     }
 }
 
@@ -262,12 +273,7 @@ fn main() {
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 
-    let mut my_app = MyApp {
-        exit: false,
-        wl_surface,
-
-        shm,
-    };
+    let mut my_app = MyApp::new(wl_surface, shm);
     //利用wl_compistor创建一个wl_surface
     while !my_app.exit {
         event_queue.blocking_dispatch(&mut my_app).unwrap();

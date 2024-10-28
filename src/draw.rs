@@ -13,17 +13,25 @@ impl Painter {
         let mut slot_pool = SlotPool::new(MyApp::STORE_SIZE as usize, &state.shm).unwrap();
         let (buffer, arr) = slot_pool
             .create_buffer(
-                MyApp::WIDTH,
-                MyApp::HEIGHT,
-                MyApp::STRIDE,
+                MyApp::WIDTH as i32,
+                MyApp::HEIGHT as i32,
+                MyApp::STRIDE as i32,
                 wl_shm::Format::Xrgb8888,
             )
             .unwrap();
-        let a = ImageReader::open("image/test.png")
+        let mut image = ImageReader::open("image/test.png")
             .unwrap()
             .decode()
             .unwrap();
-        for (index, (_, _, rbga)) in a.pixels().enumerate() {
+        if state.width != image.width() || state.height != image.height() {
+            println!("尺寸不一致，需要缩放");
+            image = image.resize(
+                state.width,
+                state.height,
+                image::imageops::FilterType::Nearest,
+            );
+        }
+        for (index, (_, _, rbga)) in image.pixels().enumerate() {
             let [r, g, b, _a] = rbga.0;
             let pos = index * 4;
             //注意wayland文档。Xrgb8888是采用小端的。所以低位地址存的是绿色。

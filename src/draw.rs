@@ -13,13 +13,13 @@ impl Painter {
         let mut slot_pool = SlotPool::new(MyApp::STORE_SIZE as usize, &state.shm).unwrap();
         let (buffer, arr) = slot_pool
             .create_buffer(
-                MyApp::WIDTH as i32,
-                MyApp::HEIGHT as i32,
-                MyApp::STRIDE as i32,
+                state.width as i32,
+                state.height as i32,
+                (state.width * MyApp::PIXEL_SIZE) as i32,
                 wl_shm::Format::Xrgb8888,
             )
             .unwrap();
-        let mut image = ImageReader::open("image/test.png")
+        let mut image = ImageReader::open("image/test2.png")
             .unwrap()
             .decode()
             .unwrap();
@@ -30,6 +30,7 @@ impl Painter {
                 state.height,
                 image::imageops::FilterType::Nearest,
             );
+            println!("缩放后尺寸:{},{}", image.width(), image.height());
         }
         for (index, (_, _, rbga)) in image.pixels().enumerate() {
             let [r, g, b, _a] = rbga.0;

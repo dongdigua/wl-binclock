@@ -22,6 +22,10 @@ use smithay_client_toolkit::{
             xdg_toplevel::{self, XdgToplevel},
             xdg_wm_base::{self, XdgWmBase},
         },
+        protocols_wlr::layer_shell::v1::client::{
+            zwlr_layer_shell_v1::{self, ZwlrLayerShellV1},
+            zwlr_layer_surface_v1::{self, Anchor, ZwlrLayerSurfaceV1},
+        },
     },
     shm::{Shm, ShmHandler},
 };
@@ -41,7 +45,6 @@ impl MyApp {
     const WIDTH: u32 = 600;
     const HEIGHT: u32 = 400;
     const PIXEL_SIZE: u32 = 4;
-    const STRIDE: u32 = Self::WIDTH * Self::PIXEL_SIZE;
     const STORE_SIZE: u32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
 
     fn new(wl_surface: WlSurface, shm: Shm) -> Self {
@@ -234,6 +237,57 @@ impl Dispatch<WlOutput, MyUserData> for MyApp {
     }
 }
 
+impl Dispatch<ZwlrLayerShellV1, MyUserData> for MyApp {
+    fn event(
+        _state: &mut Self,
+        _proxy: &ZwlrLayerShellV1,
+        _event: zwlr_layer_shell_v1::Event,
+        _data: &MyUserData,
+        _conn: &Connection,
+        _qhandle: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
+    fn event(
+        state: &mut Self,
+        _proxy: &ZwlrLayerSurfaceV1,
+        _event: zwlr_layer_surface_v1::Event,
+        _data: &MyUserData,
+        _conn: &Connection,
+        _qhandle: &QueueHandle<Self>,
+    ) {
+        match _event {
+            zwlr_layer_surface_v1::Event::Configure {
+                serial,
+                width,
+                height,
+            } => {
+                println!("layer shell size:{},{}", width, height);
+                if state.has_draw {
+                    return;
+                }
+                _proxy.ack_configure(serial);
+                state.width = width;
+                state.height = height;
+
+                //开始画画
+                let buffer = draw::Painter::draw(&state);
+                //开始倾倒：把这桶buffer油漆放到这张surface纸上
+                buffer.attach_to(&state.wl_surface).unwrap();
+                //告诉服务端这张纸需要更新
+                state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+                //告诉Server端倾倒完成
+                state.wl_surface.commit();
+                state.has_draw = true;
+            }
+            zwlr_layer_surface_v1::Event::Closed => {}
+            _ => (),
+        }
+    }
+}
+
 impl ShmHandler for MyApp {
     fn shm_state(&mut self) -> &mut Shm {
         todo!()
@@ -261,15 +315,31 @@ fn main() {
     let wl_surface = wl_compositor.create_surface(&event_queue.handle(), MyUserData);
     // wl_surface.frame(&event_queue.handle(), MyUserData);
     //把这张纸转换成xdg_surface,这样才能在常见的桌面环境下显示
-    let xdg_wm_base: XdgWmBase = glist
-        .bind(&event_queue.handle(), 1..=6, MyUserData)
-        .unwrap();
-    let xdg_surface = xdg_wm_base.get_xdg_surface(&wl_surface, &event_queue.handle(), MyUserData);
+    // let xdg_wm_base: XdgWmBase = glist
+    //     .bind(&event_queue.handle(), 1..=6, MyUserData)
+    //     .unwrap();
+    // let xdg_surface = xdg_wm_base.get_xdg_surface(&wl_surface, &event_queue.handle(), MyUserData);
 
     //为他分配一个角色，让他显示到最上层,这样他就不是初始状态了。
-    let xdg_toplevel = xdg_surface.get_toplevel(&event_queue.handle(), MyUserData);
-    xdg_toplevel.set_title(String::from("test"));
+    // let xdg_toplevel = xdg_surface.get_toplevel(&event_queue.handle(), MyUserData);
+    // xdg_toplevel.set_title(String::from("test"));
+
+    //给他layer shell的角色 一个surface只能有一个角色
+    let layer_shell: ZwlrLayerShellV1 = glist
+        .bind(&event_queue.handle(), 1..=5, MyUserData)
+        .unwrap();
+    let lay_surface = layer_shell.get_layer_surface(
+        &wl_surface,
+        None,
+        zwlr_layer_shell_v1::Layer::Background,
+        String::new(),
+        &event_queue.handle(),
+        MyUserData,
+    );
+    lay_surface.set_anchor(Anchor::all());
+    lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
+    println!("第一次wl_surface提交");
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 

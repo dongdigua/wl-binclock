@@ -31,6 +31,7 @@ use smithay_client_toolkit::{
 };
 
 mod draw;
+mod wallpaper;
 
 struct MyApp {
     exit: bool,

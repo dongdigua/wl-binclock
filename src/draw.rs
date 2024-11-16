@@ -10,28 +10,17 @@ pub struct Painter {}
 
 impl Painter {
     pub fn draw(state: &MyApp) -> Buffer {
-        let mut slot_pool = SlotPool::new(MyApp::STORE_SIZE as usize, &state.shm).unwrap();
+        let mut slot_pool = SlotPool::new(state.store_size(), &state.shm).unwrap();
         let (buffer, arr) = slot_pool
             .create_buffer(
                 state.width as i32,
                 state.height as i32,
-                (state.width * MyApp::PIXEL_SIZE) as i32,
+                state.stride(),
                 wl_shm::Format::Xrgb8888,
             )
             .unwrap();
-        let mut image = ImageReader::open("image/test2.png")
-            .unwrap()
-            .decode()
-            .unwrap();
-        if state.width != image.width() || state.height != image.height() {
-            println!("尺寸不一致，需要缩放");
-            image = image.resize(
-                state.width,
-                state.height,
-                image::imageops::FilterType::Nearest,
-            );
-            println!("缩放后尺寸:{},{}", image.width(), image.height());
-        }
+
+        let image = resize(state);
         for (index, (_, _, rbga)) in image.pixels().enumerate() {
             let [r, g, b, _a] = rbga.0;
             let pos = index * 4;
@@ -39,6 +28,26 @@ impl Painter {
             arr[pos..pos + 4].copy_from_slice(&[b, g, r, 0]);
         }
         return buffer;
+    }
+}
+
+fn resize(state: &MyApp) -> image::DynamicImage {
+    let path = state.config.get_current_image();
+    let image = ImageReader::open(path.clone()).unwrap().decode().unwrap();
+    if state.width != image.width() || state.height != image.height() {
+        let mut resizer = fast_image_resize::Resizer::new();
+        let options = fast_image_resize::ResizeOptions {
+            algorithm: fast_image_resize::ResizeAlg::Convolution(
+                fast_image_resize::FilterType::Lanczos3,
+            ),
+            ..Default::default()
+        };
+        let mut new_image = image::DynamicImage::new(state.width, state.height, image.color());
+        resizer.resize(&image, &mut new_image, &options).unwrap();
+        new_image.save(path).unwrap();
+        new_image
+    } else {
+        image
     }
 }
 

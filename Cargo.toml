@@ -8,3 +8,4 @@ image = "0.25.4"
 smithay-client-toolkit = "0.19.2"
 xdg = "2.5.2"
 water-bg-config = { path = "./config" }
+fast_image_resize = {version="5.0.0",features=["image"]}

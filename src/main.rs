@@ -29,9 +29,9 @@ use smithay_client_toolkit::{
     },
     shm::{Shm, ShmHandler},
 };
+use water_bg_config::Config;
 
 mod draw;
-mod wallpaper;
 
 struct MyApp {
     exit: bool,
@@ -40,13 +40,11 @@ struct MyApp {
     has_draw: bool,
     width: u32,
     height: u32,
+    config: Config,
 }
 
 impl MyApp {
-    const WIDTH: u32 = 600;
-    const HEIGHT: u32 = 400;
     const PIXEL_SIZE: u32 = 4;
-    const STORE_SIZE: u32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
 
     fn new(wl_surface: WlSurface, shm: Shm) -> Self {
         MyApp {
@@ -54,9 +52,18 @@ impl MyApp {
             wl_surface,
             shm,
             has_draw: false,
-            width: Self::WIDTH,
-            height: Self::HEIGHT,
+            width: 0,
+            height: 0,
+            config: Config::default(),
         }
+    }
+
+    fn store_size(&self) -> usize {
+        (self.width * self.height * 2 * Self::PIXEL_SIZE) as usize
+    }
+
+    fn stride(&self) -> i32 {
+        (self.width * Self::PIXEL_SIZE) as i32
     }
 }
 
@@ -176,13 +183,9 @@ impl Dispatch<XdgSurface, MyUserData> for MyApp {
                     return;
                 }
                 proxy.ack_configure(serial);
-                //开始画画
                 let buffer = draw::Painter::draw(&state);
-                //开始倾倒：把这桶buffer油漆放到这张surface纸上
                 buffer.attach_to(&state.wl_surface).unwrap();
-                //告诉服务端这张纸需要更新
                 state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                //告诉Server端倾倒完成
                 state.wl_surface.commit();
                 state.has_draw = true;
             }
@@ -273,13 +276,9 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 state.width = width;
                 state.height = height;
 
-                //开始画画
                 let buffer = draw::Painter::draw(&state);
-                //开始倾倒：把这桶buffer油漆放到这张surface纸上
                 buffer.attach_to(&state.wl_surface).unwrap();
-                //告诉服务端这张纸需要更新
                 state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                //告诉Server端倾倒完成
                 state.wl_surface.commit();
                 state.has_draw = true;
             }
@@ -296,36 +295,13 @@ impl ShmHandler for MyApp {
 }
 
 fn main() {
-    //设置环境变量,你决定要连接到哪个wayland compositor
-    //默认是wayland-0 .具体文件放在/run/user/1000/下
     env::set_var("WAYLAND_DISPLAY", "wayland-0");
-
-    //连接到wayland服务器
     let conn = Connection::connect_to_env().expect("connect failed");
-
-    //这个方法会获取wl_display,然后发送get_registry请求,然后获取所有的全局接口
     let (glist, mut event_queue) = registry_queue_init::<MyApp>(&conn).unwrap();
-
-    //绑定到全局对象wl_compositor
     let wl_compositor: WlCompositor = glist
         .bind(&event_queue.handle(), 1..=6, MyUserData)
         .unwrap();
-
-    //申请一张纸
-    //刚刚创建的时候，他是初始状态,初始状态是无效的。
     let wl_surface = wl_compositor.create_surface(&event_queue.handle(), MyUserData);
-    // wl_surface.frame(&event_queue.handle(), MyUserData);
-    //把这张纸转换成xdg_surface,这样才能在常见的桌面环境下显示
-    // let xdg_wm_base: XdgWmBase = glist
-    //     .bind(&event_queue.handle(), 1..=6, MyUserData)
-    //     .unwrap();
-    // let xdg_surface = xdg_wm_base.get_xdg_surface(&wl_surface, &event_queue.handle(), MyUserData);
-
-    //为他分配一个角色，让他显示到最上层,这样他就不是初始状态了。
-    // let xdg_toplevel = xdg_surface.get_toplevel(&event_queue.handle(), MyUserData);
-    // xdg_toplevel.set_title(String::from("test"));
-
-    //给他layer shell的角色 一个surface只能有一个角色
     let layer_shell: ZwlrLayerShellV1 = glist
         .bind(&event_queue.handle(), 1..=5, MyUserData)
         .unwrap();
@@ -340,12 +316,10 @@ fn main() {
     lay_surface.set_anchor(Anchor::all());
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
-    println!("第一次wl_surface提交");
-    //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 
     let mut my_app = MyApp::new(wl_surface, shm);
-    //利用wl_compistor创建一个wl_surface
+
     while !my_app.exit {
         event_queue.blocking_dispatch(&mut my_app).unwrap();
     }

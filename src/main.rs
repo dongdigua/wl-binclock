@@ -201,15 +201,6 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 _proxy.ack_configure(serial);
                 state.width = width;
                 state.height = height;
-
-                //开始画画
-                let buffer = draw::Painter::draw(&state);
-                //开始倾倒：把这桶buffer油漆放到这张surface纸上
-                buffer.attach_to(&state.wl_surface).unwrap();
-                //告诉服务端这张纸需要更新
-                state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                //告诉Server端倾倒完成
-                state.wl_surface.commit();
             }
             zwlr_layer_surface_v1::Event::Closed => {}
             _ => (),
@@ -253,21 +244,23 @@ fn main() {
         MyUserData,
     );
     lay_surface.set_size(MyApp::WIDTH, MyApp::HEIGHT);
-    lay_surface.set_anchor(Anchor::Top | Anchor::Right);
+    lay_surface.set_anchor(Anchor::Top | Anchor::Right); // CONFIG
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 
     let mut my_app = MyApp::new(wl_surface, shm);
+    // CONFIG 0xAARRGGBB
+    let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
 
     //利用wl_compistor创建一个wl_surface
     while !my_app.exit {
         event_queue.blocking_dispatch(&mut my_app).unwrap();
-        let buffer = draw::Painter::draw(&my_app);
+        let buffer = my_painter.draw(&my_app);
         buffer.attach_to(&my_app.wl_surface).unwrap();
         my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
         my_app.wl_surface.commit();
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     }
 }

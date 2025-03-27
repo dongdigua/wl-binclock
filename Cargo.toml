@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-image = "0.25.4"
 smithay-client-toolkit = "0.19.2"
+chrono = {version = "0.4", default-features = false, features = ["std", "clock", "now"]}

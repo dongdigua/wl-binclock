@@ -1,4 +1,4 @@
-use std::{env, i32};
+use std::i32;
 
 use smithay_client_toolkit::{
     globals::GlobalData,
@@ -42,8 +42,8 @@ struct MyApp {
 }
 
 impl MyApp {
-    const WIDTH: u32 = 600;
-    const HEIGHT: u32 = 400;
+    const WIDTH: u32 = 128;
+    const HEIGHT: u32 = 128;
     const PIXEL_SIZE: u32 = 4;
     const STORE_SIZE: u32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
 
@@ -295,10 +295,6 @@ impl ShmHandler for MyApp {
 }
 
 fn main() {
-    //设置环境变量,你决定要连接到哪个wayland compositor
-    //默认是wayland-0 .具体文件放在/run/user/1000/下
-    //env::set_var("WAYLAND_DISPLAY", "wayland-0");
-
     //连接到wayland服务器
     let conn = Connection::connect_to_env().expect("connect failed");
 
@@ -331,12 +327,13 @@ fn main() {
     let lay_surface = layer_shell.get_layer_surface(
         &wl_surface,
         None,
-        zwlr_layer_shell_v1::Layer::Background,
+        zwlr_layer_shell_v1::Layer::Bottom,
         String::new(),
         &event_queue.handle(),
         MyUserData,
     );
-    lay_surface.set_anchor(Anchor::all());
+    lay_surface.set_size(128, 128);
+    lay_surface.set_anchor(Anchor::Top | Anchor::Right);
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
     println!("第一次wl_surface提交");

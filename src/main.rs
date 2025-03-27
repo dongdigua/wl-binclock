@@ -31,14 +31,13 @@ struct MyApp {
     exit: bool,
     wl_surface: WlSurface,
     shm: Shm,
-    has_draw: bool,
     width: u32,
     height: u32,
 }
 
 impl MyApp {
-    const WIDTH: u32 = 128;
-    const HEIGHT: u32 = 128;
+    const WIDTH: u32 = 16 * 6;
+    const HEIGHT: u32 = 16 * 4;
     const PIXEL_SIZE: u32 = 4;
     const STORE_SIZE: u32 = Self::WIDTH * Self::HEIGHT * 2 * Self::PIXEL_SIZE;
 
@@ -47,7 +46,6 @@ impl MyApp {
             exit: false,
             wl_surface,
             shm,
-            has_draw: false,
             width: Self::WIDTH,
             height: Self::HEIGHT,
         }
@@ -254,7 +252,7 @@ fn main() {
         &event_queue.handle(),
         MyUserData,
     );
-    lay_surface.set_size(128, 128);
+    lay_surface.set_size(MyApp::WIDTH, MyApp::HEIGHT);
     lay_surface.set_anchor(Anchor::Top | Anchor::Right);
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();

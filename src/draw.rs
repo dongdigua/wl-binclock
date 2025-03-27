@@ -26,12 +26,10 @@ impl Painter {
 }
 
 fn draw_point(v: &mut [u8], x: usize, y: usize) {
-    // the cavas 128 * 128 * 4 (pixel size)
-    // is divided into 8 * 8 grid (each 16 * 16)
-    // 64 = 16 (point_width) * 4 (pixel size)
+    // 6x4 grid (each 16x16 pixel)
     for xs in (x*64)..=(x*64+63) {
         for ys in y*16..=(y*16+15) {
-            v[xs + ys*512] = 0;
+            v[xs + ys*64*6] = 0;
         }
     }
 }
@@ -54,7 +52,7 @@ fn draw_time(v: &mut [u8]) {
     for (idx, dg) in digits.iter().enumerate() {
         for (idy, b) in mkmask(*dg).iter().enumerate() {
             if *b == 1 {
-                draw_point(v, idx+1, idy+2);
+                draw_point(v, idx, idy);
             }
         }
     }

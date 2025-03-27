@@ -1,8 +1,8 @@
 [package]
-name = "my_wl_app"
+name = "wl_binclock"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 smithay-client-toolkit = "0.19.2"
-chrono = {version = "0.4", default-features = false, features = ["std", "clock", "now"]}
+chrono = {version = "0.4", default-features = false, features = ["clock"]}

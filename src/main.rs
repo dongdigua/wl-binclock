@@ -24,8 +24,10 @@ use smithay_client_toolkit::{
     },
     shm::{Shm, ShmHandler},
 };
+use clap::Parser;
 
 mod draw;
+mod args;
 
 struct MyApp {
     exit: bool,
@@ -215,6 +217,7 @@ impl ShmHandler for MyApp {
 }
 
 fn main() {
+    let args = args::Args::parse();
     //连接到wayland服务器
     let conn = Connection::connect_to_env().expect("connect failed");
 
@@ -244,7 +247,8 @@ fn main() {
         MyUserData,
     );
     lay_surface.set_size(MyApp::WIDTH, MyApp::HEIGHT);
-    lay_surface.set_anchor(Anchor::Top | Anchor::Right); // CONFIG
+    lay_surface.set_anchor(Anchor::from_bits(args.anchor)
+                           .expect("bad anchor"));
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
     //获得wl_shm全局对象
@@ -252,7 +256,8 @@ fn main() {
 
     let mut my_app = MyApp::new(wl_surface, shm);
     // CONFIG 0xAARRGGBB
-    let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
+    // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
+    let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
 
     //利用wl_compistor创建一个wl_surface
     while !my_app.exit {

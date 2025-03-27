@@ -297,7 +297,7 @@ impl ShmHandler for MyApp {
 fn main() {
     //设置环境变量,你决定要连接到哪个wayland compositor
     //默认是wayland-0 .具体文件放在/run/user/1000/下
-    env::set_var("WAYLAND_DISPLAY", "wayland-0");
+    //env::set_var("WAYLAND_DISPLAY", "wayland-0");
 
     //连接到wayland服务器
     let conn = Connection::connect_to_env().expect("connect failed");

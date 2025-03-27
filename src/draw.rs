@@ -19,25 +19,7 @@ impl Painter {
                 wl_shm::Format::Xrgb8888,
             )
             .unwrap();
-        let mut image = ImageReader::open("image/test2.png")
-            .unwrap()
-            .decode()
-            .unwrap();
-        if state.width != image.width() || state.height != image.height() {
-            println!("尺寸不一致，需要缩放");
-            image = image.resize(
-                state.width,
-                state.height,
-                image::imageops::FilterType::Nearest,
-            );
-            println!("缩放后尺寸:{},{}", image.width(), image.height());
-        }
-        for (index, (_, _, rbga)) in image.pixels().enumerate() {
-            let [r, g, b, _a] = rbga.0;
-            let pos = index * 4;
-            //注意wayland文档。Xrgb8888是采用小端的。所以低位地址存的是绿色。
-            arr[pos..pos + 4].copy_from_slice(&[b, g, r, 0]);
-        }
+        arr.fill(128);
         return buffer;
     }
 }

@@ -21,7 +21,6 @@ impl Painter {
             .unwrap();
         arr.fill(255);
         draw_time(arr);
-        dbg!(&buffer);
         return buffer;
     }
 }

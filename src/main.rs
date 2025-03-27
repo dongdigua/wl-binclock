@@ -17,11 +17,6 @@ use smithay_client_toolkit::{
             },
             Connection, Dispatch, QueueHandle,
         },
-        protocols::xdg::shell::client::{
-            xdg_surface::{self, XdgSurface},
-            xdg_toplevel::{self, XdgToplevel},
-            xdg_wm_base::{self, XdgWmBase},
-        },
         protocols_wlr::layer_shell::v1::client::{
             zwlr_layer_shell_v1::{self, ZwlrLayerShellV1},
             zwlr_layer_surface_v1::{self, Anchor, ZwlrLayerSurfaceV1},
@@ -142,66 +137,6 @@ impl Dispatch<WlBuffer, MyUserData> for MyApp {
     }
 }
 
-impl Dispatch<XdgWmBase, MyUserData> for MyApp {
-    fn event(
-        _state: &mut Self,
-        proxy: &XdgWmBase,
-        event: xdg_wm_base::Event,
-        _data: &MyUserData,
-        _conn: &Connection,
-        _qhandle: &QueueHandle<Self>,
-    ) {
-        match event {
-            xdg_wm_base::Event::Ping { serial } => {
-                proxy.pong(serial);
-            }
-            _ => (),
-        }
-    }
-}
-
-impl Dispatch<XdgSurface, MyUserData> for MyApp {
-    fn event(
-        state: &mut Self,
-        proxy: &XdgSurface,
-        event: xdg_surface::Event,
-        _data: &MyUserData,
-        _conn: &Connection,
-        _qhandle: &QueueHandle<Self>,
-    ) {
-        match event {
-            xdg_surface::Event::Configure { serial } => {
-                if state.has_draw {
-                    return;
-                }
-                proxy.ack_configure(serial);
-                //开始画画
-                let buffer = draw::Painter::draw(&state);
-                //开始倾倒：把这桶buffer油漆放到这张surface纸上
-                buffer.attach_to(&state.wl_surface).unwrap();
-                //告诉服务端这张纸需要更新
-                state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                //告诉Server端倾倒完成
-                state.wl_surface.commit();
-                state.has_draw = true;
-            }
-            _ => (),
-        }
-    }
-}
-
-impl Dispatch<XdgToplevel, MyUserData> for MyApp {
-    fn event(
-        _state: &mut Self,
-        _proxy: &XdgToplevel,
-        _event: xdg_toplevel::Event,
-        _data: &MyUserData,
-        _conn: &Connection,
-        _qhandle: &QueueHandle<Self>,
-    ) {
-        println!("XdgToplevel:{:?}", _event);
-    }
-}
 
 impl Dispatch<WlCallback, MyUserData> for MyApp {
     fn event(
@@ -265,9 +200,6 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 height,
             } => {
                 println!("layer shell size:{},{}", width, height);
-                if state.has_draw {
-                    return;
-                }
                 _proxy.ack_configure(serial);
                 state.width = width;
                 state.height = height;
@@ -280,7 +212,6 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 state.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
                 //告诉Server端倾倒完成
                 state.wl_surface.commit();
-                state.has_draw = true;
             }
             zwlr_layer_surface_v1::Event::Closed => {}
             _ => (),
@@ -310,15 +241,6 @@ fn main() {
     //刚刚创建的时候，他是初始状态,初始状态是无效的。
     let wl_surface = wl_compositor.create_surface(&event_queue.handle(), MyUserData);
     // wl_surface.frame(&event_queue.handle(), MyUserData);
-    //把这张纸转换成xdg_surface,这样才能在常见的桌面环境下显示
-    // let xdg_wm_base: XdgWmBase = glist
-    //     .bind(&event_queue.handle(), 1..=6, MyUserData)
-    //     .unwrap();
-    // let xdg_surface = xdg_wm_base.get_xdg_surface(&wl_surface, &event_queue.handle(), MyUserData);
-
-    //为他分配一个角色，让他显示到最上层,这样他就不是初始状态了。
-    // let xdg_toplevel = xdg_surface.get_toplevel(&event_queue.handle(), MyUserData);
-    // xdg_toplevel.set_title(String::from("test"));
 
     //给他layer shell的角色 一个surface只能有一个角色
     let layer_shell: ZwlrLayerShellV1 = glist
@@ -336,13 +258,18 @@ fn main() {
     lay_surface.set_anchor(Anchor::Top | Anchor::Right);
     lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
-    println!("第一次wl_surface提交");
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 
     let mut my_app = MyApp::new(wl_surface, shm);
+
     //利用wl_compistor创建一个wl_surface
     while !my_app.exit {
         event_queue.blocking_dispatch(&mut my_app).unwrap();
+        let buffer = draw::Painter::draw(&my_app);
+        buffer.attach_to(&my_app.wl_surface).unwrap();
+        my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+        my_app.wl_surface.commit();
+        std::thread::sleep(std::time::Duration::from_millis(500));
     }
 }

@@ -7,12 +7,17 @@ https://github.com/PurestAsh/wayland_hello_world_rust (https://bbs.deepin.org/po
 It should show a 96x64 widget.
 
 ## Demos
-![](images/demo_mono.png)<br>
-![](images/demo_reversed.png)<br>
-![](images/demo_brekkie.png)<br>
-![](images/demo_peak.png)<br>
-![](images/demo_dinners.png)<br>
-![](images/demo_rainforest.png)<br>
+![](images/demo_mono.png)
+---
+![](images/demo_reversed.png)
+---
+![](images/demo_brekkie.png)
+---
+![](images/demo_peak.png)
+---
+![](images/demo_dinners.png)
+---
+![](images/demo_rainforest.png)
 
 ## Usage
 ```

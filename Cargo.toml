@@ -1,10 +1,10 @@
 [package]
 name = "wl_binclock"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 
 [dependencies]
 rand = "0.9"
 smithay-client-toolkit = "0.19.2"
 chrono = {version = "0.4", default-features = false, features = ["clock"]}
-clap = {version = "4.5", default-features = false, features = ["std", "help", "error-context", "derive"]}
+clap = {version = "4.5", default-features = false, features = ["std", "help", "usage", "error-context", "derive"]}

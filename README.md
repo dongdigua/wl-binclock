@@ -21,7 +21,8 @@ It should show a 96x64 widget.
 
 ## Usage
 ```
-wl_binclock --fg 0x80e8b6 0xa1fff9 0xbd7cf8 0x7288f6  # use a palette (from Chicory: A Colorful Tale)
+wl_binclock --fg ff80e8b6 ffa1fff9 ffbd7cf8 ff7288f6  # use a palette (from Chicory: A Colorful Tale)
+wl_binclock --bg 0  # full transparent
 wl_binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)
 ```
 

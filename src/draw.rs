@@ -30,7 +30,7 @@ impl Painter {
                 state.width as i32,
                 state.height as i32,
                 (state.width * MyApp::PIXEL_SIZE) as i32,
-                wl_shm::Format::Xrgb8888,
+                wl_shm::Format::Argb8888,
             )
             .unwrap();
         self.draw_time(arr);

@@ -6,10 +6,11 @@ use clap::Parser;
 
 #[derive(Parser)]
 pub struct Args {
-    /// can specify multiple fgs
-    #[clap(long, short, num_args(1..), default_value = "0x000000", value_parser = parse_hex)]
+    /// AARRGGBB
+    #[clap(long, short, num_args(1..), default_value = "0xff000000", value_parser = parse_hex)]
     pub fg: Vec<u32>,
-    #[clap(long, short, num_args(1..), default_value = "0xffffff", value_parser = parse_hex)]
+    /// AARRGGBB
+    #[clap(long, short, num_args(1..), default_value = "0xffffffff", value_parser = parse_hex)]
     pub bg: Vec<u32>,
     /// bitfield top=1 bottom=2 left=4 right=8
     #[clap(long, short, default_value = "9")]

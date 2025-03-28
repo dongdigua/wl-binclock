@@ -824,8 +824,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "wl_binclock"
-version = "1.1.0"
+name = "wl-binclock"
+version = "1.1.1"
 dependencies = [
  "chrono",
  "clap",

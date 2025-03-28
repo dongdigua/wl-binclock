@@ -66,10 +66,12 @@ impl Painter {
 }
 
 fn draw_point(v: &mut [u8], x: usize, y: usize, color: &Color) {
-    let mut rng = rand::rng();
     let color_u32 = match color {
         Color::Mono(c) => c,
-        Color::Multi(cv) => cv.choose(&mut rng).unwrap()
+        Color::Multi(cv) => {
+            let mut rng = rand::rng();
+            cv.choose(&mut rng).unwrap()
+        }
     };
     let color_bytes: [u8; 4] = color_u32.to_ne_bytes();
     // 6x4 grid (each 16x16 pixel)

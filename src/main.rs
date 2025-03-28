@@ -259,6 +259,8 @@ fn main() {
     // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
     let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
 
+    //normally there're two events at startup
+    let mut speedup = 2;
     //利用wl_compistor创建一个wl_surface
     while !my_app.exit {
         event_queue.blocking_dispatch(&mut my_app).unwrap();
@@ -266,6 +268,10 @@ fn main() {
         buffer.attach_to(&my_app.wl_surface).unwrap();
         my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
         my_app.wl_surface.commit();
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        if speedup > 0 {
+            speedup -= 1;
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+        }
     }
 }

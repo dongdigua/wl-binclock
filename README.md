@@ -26,6 +26,9 @@ wl_binclock --bg 0  # full transparent
 wl_binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)
 ```
 
+## Package
+- [AUR](https://aur.archlinux.org/packages/wl-binclock)
+
 ## Related Projects
 I made this project because I can't find a binary clock for wayland.
 - [c4llv07e/binok](https://codeberg.org/c4llv07e/binok)

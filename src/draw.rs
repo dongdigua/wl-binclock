@@ -19,8 +19,7 @@ pub struct Painter {
 impl Painter {
     pub fn new(fg: Color, bg: Color) -> Self {
         Self {
-            fg : fg,
-            bg : bg
+            fg, bg
         }
     }
     pub fn draw(&self, state: &MyApp) -> Buffer {
@@ -34,7 +33,7 @@ impl Painter {
             )
             .unwrap();
         self.draw_time(arr);
-        return buffer;
+        buffer
     }
 
     fn draw_time(&self, v: &mut [u8]) {

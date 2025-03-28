@@ -1,5 +1,3 @@
-use std::i32;
-
 use smithay_client_toolkit::{
     globals::GlobalData,
     reexports::{

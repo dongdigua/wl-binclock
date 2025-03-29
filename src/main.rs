@@ -240,14 +240,13 @@ fn main() {
         &wl_surface,
         None,
         zwlr_layer_shell_v1::Layer::Bottom,
-        String::new(),
+        String::from("wl-binclock"),
         &event_queue.handle(),
         MyUserData,
     );
     lay_surface.set_size(MyApp::WIDTH, MyApp::HEIGHT);
     lay_surface.set_anchor(Anchor::from_bits(args.anchor)
                            .expect("bad anchor"));
-    lay_surface.set_exclusive_zone(-1);
     wl_surface.commit();
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();

@@ -266,24 +266,28 @@ fn main() {
         let wl_fd = read_guard.connection_fd();
 
         let elapsed = last_update.elapsed();
+        const MIN_DELAY: u16 = 1;
         let timeout_ms = if elapsed >= Duration::from_secs(1) {
-            1
+            MIN_DELAY
         } else {
             let mut diff = (Duration::from_secs(1) - elapsed).as_millis() as u16;
-            if diff == 0 { diff += 1; }
+            if diff == 0 { diff += MIN_DELAY; }
             diff
         };
 
         // Wait for events or timeout.
         let mut poll_fds = [PollFd::new(wl_fd, PollFlags::POLLIN)];
 
-        if poll(&mut poll_fds, timeout_ms).unwrap() > 0 {
+        let poll_ret = poll(&mut poll_fds, timeout_ms).unwrap();
+        if  poll_ret > 0 {
             debug!("poll > 0");
             read_guard.read().unwrap();
             event_queue.dispatch_pending(&mut my_app).unwrap();
-        } else {
+        } else if poll_ret == 0 {
             debug!("poll timed out in {timeout_ms}");
             std::mem::drop(read_guard);
+        } else {
+            eprintln!("poll failed");
         }
 
         if elapsed >= Duration::from_secs(1) {
@@ -292,7 +296,7 @@ fn main() {
             buffer.attach_to(&my_app.wl_surface).unwrap();
             my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
             my_app.wl_surface.commit();
-            last_update = Instant::now();
+            last_update += Duration::from_secs(1);
         }
     }
 }

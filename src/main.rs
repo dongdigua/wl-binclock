@@ -23,12 +23,13 @@ use smithay_client_toolkit::{
     shm::{Shm, ShmHandler},
 };
 use clap::Parser;
+use nix::poll::{poll, PollFd, PollFlags};
+use std::time::{Duration, Instant};
 
 mod draw;
 mod args;
 
 struct MyApp {
-    exit: bool,
     wl_surface: WlSurface,
     shm: Shm,
     width: u32,
@@ -43,7 +44,6 @@ impl MyApp {
 
     fn new(wl_surface: WlSurface, shm: Shm) -> Self {
         MyApp {
-            exit: false,
             wl_surface,
             shm,
             width: Self::WIDTH,
@@ -256,19 +256,39 @@ fn main() {
     // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
     let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
 
-    //normally there're two events at startup
-    let mut speedup = 2;
-    //利用wl_compistor创建一个wl_surface
-    while !my_app.exit {
-        event_queue.blocking_dispatch(&mut my_app).unwrap();
-        let buffer = my_painter.draw(&my_app);
-        buffer.attach_to(&my_app.wl_surface).unwrap();
-        my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-        my_app.wl_surface.commit();
-        if speedup > 0 {
-            speedup -= 1;
+
+    let mut last_update = Instant::now();
+    loop {
+        event_queue.flush().unwrap();
+        let read_guard = event_queue.prepare_read().unwrap();
+        let wl_fd = read_guard.connection_fd();
+        // Calculate remaining time until the next 1-second update.
+        let elapsed = last_update.elapsed();
+        let timeout_ms = if elapsed >= Duration::from_secs(1) {
+            0  // No wait, update immediately.
         } else {
-            std::thread::sleep(std::time::Duration::from_millis(1000));
+            (Duration::from_secs(1) - elapsed).as_millis() as u16
+        };
+
+        // Wait for events or timeout.
+        let mut poll_fds = [PollFd::new(wl_fd, PollFlags::POLLIN)];
+
+        if poll(&mut poll_fds, timeout_ms).unwrap() > 0 {
+            println!("poll > 0");
+            read_guard.read().unwrap();
+            event_queue.dispatch_pending(&mut my_app).unwrap();
+        } else {
+            std::mem::drop(read_guard);
+        }
+
+        // Check if it’s time to update.
+        if last_update.elapsed() >= Duration::from_secs(1) {
+            println!("update");
+            let buffer = my_painter.draw(&my_app);
+            buffer.attach_to(&my_app.wl_surface).unwrap();
+            my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+            my_app.wl_surface.commit();
+            last_update = Instant::now();
         }
     }
 }

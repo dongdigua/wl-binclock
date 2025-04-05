@@ -8,6 +8,7 @@ rand = "0.9"
 smithay-client-toolkit = "0.19.2"
 chrono = {version = "0.4", default-features = false, features = ["clock"]}
 clap = {version = "4.5", default-features = false, features = ["std", "help", "usage", "error-context", "derive"]}
+nix = {version = "0.29", features = ["poll"]}
 
 [profile.release]
 lto = true

@@ -28,6 +28,7 @@ use std::time::{Duration, Instant};
 
 mod draw;
 mod args;
+mod log;
 
 struct MyApp {
     wl_surface: WlSurface,
@@ -89,10 +90,10 @@ impl Dispatch<WlSurface, MyUserData> for MyApp {
     ) {
         match _event {
             wl_surface::Event::Enter { output: _ } => {
-                println!("wl_surface::Event::Enter")
+                debug!("wl_surface::Event::Enter");
             }
             wl_surface::Event::Leave { output: _ } => {
-                println!("wl_surface::Event::Leave")
+                debug!("wl_surface::Event::Leave");
             }
             _ => (),
         }
@@ -163,7 +164,7 @@ impl Dispatch<WlOutput, MyUserData> for MyApp {
     ) {
         match _event {
             wl_output::Event::Scale { factor: _ } => {
-                println!("scale factor:{:?}", _event);
+                debug!("scale factor:{:?}", _event);
             }
             _ => (),
         }
@@ -197,7 +198,7 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 width,
                 height,
             } => {
-                println!("layer shell size:{},{}", width, height);
+                debug!("layer shell size:{},{}", width, height);
                 _proxy.ack_configure(serial);
                 state.width = width;
                 state.height = height;
@@ -259,31 +260,34 @@ fn main() {
 
     let mut last_update = Instant::now();
     loop {
+        // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
         let read_guard = event_queue.prepare_read().unwrap();
         let wl_fd = read_guard.connection_fd();
-        // Calculate remaining time until the next 1-second update.
+
         let elapsed = last_update.elapsed();
         let timeout_ms = if elapsed >= Duration::from_secs(1) {
-            0  // No wait, update immediately.
+            1
         } else {
-            (Duration::from_secs(1) - elapsed).as_millis() as u16
+            let mut diff = (Duration::from_secs(1) - elapsed).as_millis() as u16;
+            if diff == 0 { diff += 1; }
+            diff
         };
 
         // Wait for events or timeout.
         let mut poll_fds = [PollFd::new(wl_fd, PollFlags::POLLIN)];
 
         if poll(&mut poll_fds, timeout_ms).unwrap() > 0 {
-            println!("poll > 0");
+            debug!("poll > 0");
             read_guard.read().unwrap();
             event_queue.dispatch_pending(&mut my_app).unwrap();
         } else {
+            debug!("poll timed out in {timeout_ms}");
             std::mem::drop(read_guard);
         }
 
-        // Check if it’s time to update.
-        if last_update.elapsed() >= Duration::from_secs(1) {
-            println!("update");
+        if elapsed >= Duration::from_secs(1) {
+            debug!("update");
             let buffer = my_painter.draw(&my_app);
             buffer.attach_to(&my_app.wl_surface).unwrap();
             my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);

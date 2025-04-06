@@ -257,8 +257,8 @@ fn main() {
     // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
     let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
 
-
-    let mut last_update = Instant::now();
+    const ONE_SEC: Duration = Duration::from_secs(1);
+    let mut last_update = Instant::now() - ONE_SEC;
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
@@ -267,10 +267,10 @@ fn main() {
 
         let elapsed = last_update.elapsed();
         const MIN_DELAY: u16 = 1;
-        let timeout_ms = if elapsed >= Duration::from_secs(1) {
+        let timeout_ms = if elapsed >= ONE_SEC {
             MIN_DELAY
         } else {
-            let mut diff = (Duration::from_secs(1) - elapsed).as_millis() as u16;
+            let mut diff = (ONE_SEC - elapsed).as_millis() as u16;
             if diff == 0 { diff += MIN_DELAY; }
             diff
         };
@@ -290,13 +290,13 @@ fn main() {
             eprintln!("poll failed");
         }
 
-        if elapsed >= Duration::from_secs(1) {
+        if elapsed >= ONE_SEC {
             debug!("update");
             let buffer = my_painter.draw(&my_app);
             buffer.attach_to(&my_app.wl_surface).unwrap();
             my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
             my_app.wl_surface.commit();
-            last_update += Duration::from_secs(1);
+            last_update += ONE_SEC;
         }
     }
 }

@@ -146,10 +146,6 @@ impl Dispatch<WlCallback, MyUserData> for MyApp {
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
-        match _event {
-            wl_callback::Event::Done { callback_data: _ } => {}
-            _ => (),
-        }
     }
 }
 
@@ -162,12 +158,6 @@ impl Dispatch<WlOutput, MyUserData> for MyApp {
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
-        match _event {
-            wl_output::Event::Scale { factor: _ } => {
-                debug!("scale factor:{:?}", _event);
-            }
-            _ => (),
-        }
     }
 }
 

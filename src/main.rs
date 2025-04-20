@@ -207,6 +207,7 @@ impl ShmHandler for MyApp {
 
 fn main() {
     let args = args::Args::parse();
+    debug!("{:?}", args);
     //连接到wayland服务器
     let conn = Connection::connect_to_env().expect("connect failed");
 

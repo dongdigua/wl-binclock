@@ -4,7 +4,7 @@ use crate::draw::Palette;
 
 use clap::Parser;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct Args {
     /// 0xAARRGGBB or image
     #[clap(long, short, num_args(1..), default_value = "0xff000000", value_parser = parse_palette)]

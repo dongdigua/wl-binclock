@@ -24,7 +24,7 @@ use smithay_client_toolkit::{
 };
 use clap::Parser;
 use nix::poll::{poll, PollFd, PollFlags};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 mod draw;
 mod args;
@@ -248,7 +248,9 @@ fn main() {
     let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
 
     const ONE_SEC: Duration = Duration::from_secs(1);
-    let mut last_update = Instant::now() - ONE_SEC;
+    let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
+    debug!("diff: 0.{}s", diff);
+    let mut last_update = Instant::now() - ONE_SEC - Duration::from_millis(diff.into());
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();

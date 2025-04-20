@@ -18,10 +18,18 @@ It should show a 96x64 widget.
 ![](demos/demo_dinners.png)
 ---
 ![](demos/demo_rainforest.png)
+---
+or with image
+
+![](demos/demo_redstone.png)
+---
+![](demos/demo_shroom.png)
+
 
 ## Usage
 ```
 wl-binclock --fg ff80e8b6 ffa1fff9 ffbd7cf8 ff7288f6  # use a palette (from Chicory: A Colorful Tale)
+wl-binclock --fg redstone_lamp_on.png --bg redstone_lamp.png # use a image palette
 wl-binclock --bg 0  # full transparent
 wl-binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)
 ```

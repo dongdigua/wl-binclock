@@ -24,7 +24,23 @@ fn parse_palette(s: &str) -> Result<Palette, ParseIntError> {
                 Ok(i) => Ok(Palette::Color(i)),
                 Err(e) => Err(e)
             }
-        None =>
-            Ok(Palette::Image(s.to_string())),
+        None => {
+            // DeepSeek
+            let img = image::open(s).expect(&format!("Failed to open image: {}", s));
+            let rgba_img = img.into_rgba8();
+            let raw_data = rgba_img.into_raw();
+            let argb_pixels = raw_data
+                .chunks_exact(4)
+                .map(|chunk| {
+                    let r = chunk[0];
+                    let g = chunk[1];
+                    let b = chunk[2];
+                    let a = chunk[3];
+                    // Pack into u32 as 0xaarrggbb
+                    (a as u32) << 24 | (r as u32) << 16 | (g as u32) << 8 | (b as u32)
+                })
+                .collect();
+            Ok(Palette::Image(argb_pixels))
+        }
     }
 }

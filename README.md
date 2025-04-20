@@ -8,21 +8,15 @@ It should show a 96x64 widget.
 
 ## Demos
 ![](demos/demo_mono.png)
----
 ![](demos/demo_reversed.png)
----
 ![](demos/demo_brekkie.png)
----
 ![](demos/demo_peak.png)
----
 ![](demos/demo_dinners.png)
----
 ![](demos/demo_rainforest.png)
----
+
 or with image
 
 ![](demos/demo_redstone.png)
----
 ![](demos/demo_shroom.png)
 
 

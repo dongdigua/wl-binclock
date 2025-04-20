@@ -245,7 +245,7 @@ fn main() {
     let mut my_app = MyApp::new(wl_surface, shm);
     // CONFIG 0xAARRGGBB
     // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
-    let my_painter = draw::Painter::new(draw::Color::from(args.fg), draw::Color::from(args.bg));
+    let my_painter = draw::Painter::new(args.fg, args.bg);
 
     const ONE_SEC: Duration = Duration::from_secs(1);
     let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();

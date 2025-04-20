@@ -7,17 +7,19 @@ use rand::prelude::*;
 
 use crate::MyApp;
 
-pub enum Color {
-    Mono(u32),
-    Multi(Vec<u32>)
+#[derive(Clone)]
+pub enum Palette {
+    Color(u32),
+    Image(String)
 }
+
 pub struct Painter {
-    fg: Color,
-    bg: Color
+    fg: Vec<Palette>,
+    bg: Vec<Palette>
 }
 
 impl Painter {
-    pub fn new(fg: Color, bg: Color) -> Self {
+    pub fn new(fg: Vec<Palette>, bg: Vec<Palette>) -> Self {
         Self {
             fg, bg
         }
@@ -64,25 +66,26 @@ impl Painter {
 
 }
 
-fn draw_point(v: &mut [u8], x: usize, y: usize, color: &Color) {
-    let color_u32 = match color {
-        Color::Mono(c) => c,
-        Color::Multi(cv) => {
-            let mut rng = rand::rng();
-            cv.choose(&mut rng).unwrap()
-        }
-    };
-    let color_bytes: [u8; 4] = color_u32.to_ne_bytes();
-    // 6x4 grid (each 16x16 pixel)
-    for xs in (x*16)..=(x*16+15) {
-        for ys in y*16..=(y*16+15) {
-            let start = xs*4 + ys*64*6;
-            v[start] = color_bytes[0];
-            v[start+1] = color_bytes[1];
-            v[start+2] = color_bytes[2];
-            v[start+3] = color_bytes[3];
-        }
-    }
+fn draw_point(v: &mut [u8], x: usize, y: usize, palette: &Vec<Palette>) {
+    // let color_u32 = match color {
+    //     Color::Mono(c) => c,
+    //     Color::Multi(cv) => {
+    //         let mut rng = rand::rng();
+    //         cv.choose(&mut rng).unwrap()
+    //     }
+    // };
+    // let color_bytes: [u8; 4] = color_u32.to_ne_bytes();
+    // // 6x4 grid (each 16x16 pixel)
+    // for xs in (x*16)..=(x*16+15) {
+    //     for ys in y*16..=(y*16+15) {
+    //         let start = xs*4 + ys*64*6;
+    //         v[start] = color_bytes[0];
+    //         v[start+1] = color_bytes[1];
+    //         v[start+2] = color_bytes[2];
+    //         v[start+3] = color_bytes[3];
+    //     }
+    // }
+    todo!()
 }
 
 // 查表法哈哈

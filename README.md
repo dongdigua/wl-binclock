@@ -18,11 +18,12 @@ or with image
 
 ![](demos/demo_redstone.png)
 ![](demos/demo_shroom.png)
+![](demos/demo_obsidian.png)
 
 
 ## Usage
 ```
-wl-binclock --fg ff80e8b6 ffa1fff9 ffbd7cf8 ff7288f6  # use a palette (from Chicory: A Colorful Tale)
+wl-binclock --fg 0xff80e8b6 0xffa1fff9 0xffbd7cf8 0xff7288f6  # use a palette (from Chicory: A Colorful Tale)
 wl-binclock --fg redstone_lamp_on.png --bg redstone_lamp.png # use a image palette
 wl-binclock --bg 0  # full transparent
 wl-binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)

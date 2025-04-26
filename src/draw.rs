@@ -70,17 +70,14 @@ fn draw_point(v: &mut [u8], x: usize, y: usize, palette: &Vec<Palette>) {
     let mut rng = rand::rng();
     let chosen = palette.choose(&mut rng).unwrap();
 
-    for xs in 0..=15 {
-        for ys in 0..=15 {
+    for ys in 0..=15 {
+        for xs in 0..=15 {
             let start = (xs+x*16)*4 + (ys+y*16)*64*6;
             let color_bytes: [u8; 4] = match chosen {
-                Palette::Color(color) => color.to_ne_bytes(),
-                Palette::Image(image) => image[xs+ys*16].to_ne_bytes(),
-            };
-            v[start] = color_bytes[0];
-            v[start+1] = color_bytes[1];
-            v[start+2] = color_bytes[2];
-            v[start+3] = color_bytes[3];
+                Palette::Color(color) => *color,
+                Palette::Image(image) => image[xs+ys*16],
+            }.to_ne_bytes();
+            v[start..start+4].copy_from_slice(&color_bytes);
         }
     }
 }

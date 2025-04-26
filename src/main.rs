@@ -251,7 +251,7 @@ fn main() {
     const ONE_SEC: Duration = Duration::from_secs(1);
     let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
     debug!("diff: 0.{}s", diff);
-    let mut last_update = Instant::now() - ONE_SEC - Duration::from_millis(diff.into());
+    let mut last_update = Instant::now() - Duration::from_millis(diff.into());
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();

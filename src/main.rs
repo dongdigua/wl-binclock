@@ -275,26 +275,32 @@ fn main() {
                 if poll_fds[0].all().unwrap_or_default() {
                     read_guard.read().unwrap();
                     event_queue.dispatch_pending(&mut my_app).unwrap();
-                } else if poll_fds[1].all().unwrap_or_default() {
-                    input.clear();
-                    let _ = stdin.read_line(&mut input);
-                    let input_trim = input.trim();
+                } else if poll_fds[1].any().unwrap_or_default() {
+                    match poll_fds[1].revents() {
+                        Some(PollFlags::POLLIN) => {
+                            input.clear();
+                            let _ = stdin.read_line(&mut input);
+                            let input_trim = input.trim();
 
-                    let mut digits: [u32; 6] = [0; 6];
-                    // check sanity (6-digit number)
-                    if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_hexdigit()) {
-                        for (i, part) in input_trim.chars().enumerate() {
-                            digits[i] = part.to_digit(16).unwrap();
+                            let mut digits: [u32; 6] = [0; 6];
+                            // check sanity (6-digit number)
+                            if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_hexdigit()) {
+                                for (i, part) in input_trim.chars().enumerate() {
+                                    digits[i] = part.to_digit(16).unwrap();
+                                }
+                            } else {
+                                eprintln!("Invalid input");
+                            }
+
+                            if my_app.configured {
+                                let buffer = my_painter.draw(&my_app, digits);
+                                buffer.attach_to(&my_app.wl_surface).unwrap();
+                                my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+                                my_app.wl_surface.commit();
+                            }
                         }
-                    } else {
-                        eprintln!("Invalid input");
-                    }
-
-                    if my_app.configured {
-                        let buffer = my_painter.draw(&my_app, digits);
-                        buffer.attach_to(&my_app.wl_surface).unwrap();
-                        my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                        my_app.wl_surface.commit();
+                        Some(PollFlags::POLLHUP) => panic!("broken pipe"),
+                        what => panic!("stdin: {:?}", what)
                     }
                 } else {
                     debug!("whatever");

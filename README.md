@@ -32,12 +32,8 @@ wl-binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)
 ## Usage: Advanced (IPC)
 You can pipe 6-digit numbers into stdin when `--pipe` is enabled.
 ```
-# do this
-tail -f fifo | wl-binclock --pipe
-# don't do this
+command | wl-binclock --pipe
 wl-binclock --pipe < fifo
-# don't do this either
-cat fifo | wl-binclock --pipe
 ```
 
 ## Package

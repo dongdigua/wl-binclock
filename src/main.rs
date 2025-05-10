@@ -23,8 +23,9 @@ use smithay_client_toolkit::{
     shm::{Shm, ShmHandler},
 };
 use clap::Parser;
-use nix::poll::{poll, PollFd, PollFlags};
-use std::time::{Duration, Instant, SystemTime};
+use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
+use std::os::fd::AsFd;
+use std::cmp::Ordering;
 
 mod draw;
 mod args;
@@ -248,48 +249,47 @@ fn main() {
     // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
     let my_painter = draw::Painter::new(args.fg, args.bg);
 
-    const ONE_SEC: Duration = Duration::from_secs(1);
-    let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
-    debug!("diff: 0.{}s", diff);
-    let mut last_update = Instant::now() - Duration::from_millis(diff.into());
+    let stdin = std::io::stdin();
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
         let read_guard = event_queue.prepare_read().unwrap();
         let wl_fd = read_guard.connection_fd();
 
-        let elapsed = last_update.elapsed();
-        const MIN_DELAY: u16 = 1;
-        let timeout_ms = if elapsed >= ONE_SEC {
-            MIN_DELAY
-        } else {
-            let mut diff = (ONE_SEC - elapsed).as_millis() as u16;
-            if diff == 0 { diff += MIN_DELAY; }
-            diff
-        };
-
         // Wait for events or timeout.
-        let mut poll_fds = [PollFd::new(wl_fd, PollFlags::POLLIN)];
+        let mut poll_fds =
+            [PollFd::new(wl_fd, PollFlags::POLLIN),
+             PollFd::new(stdin.as_fd(), PollFlags::POLLIN)];
 
-        let poll_ret = poll(&mut poll_fds, timeout_ms).unwrap();
-        if  poll_ret > 0 {
-            debug!("poll > 0");
-            read_guard.read().unwrap();
-            event_queue.dispatch_pending(&mut my_app).unwrap();
-        } else if poll_ret == 0 {
-            debug!("poll timed out in {timeout_ms}");
-            std::mem::drop(read_guard);
-        } else {
-            eprintln!("poll failed");
-        }
+        let poll_ret = poll(&mut poll_fds, PollTimeout::NONE).unwrap();
+        match poll_ret.cmp(&0) { // thank you clippy to make my code more rusty
+            Ordering::Greater => {
+                debug!("poll > 0");
+                if poll_fds[0].all().unwrap_or_default() {
+                    read_guard.read().unwrap();
+                    event_queue.dispatch_pending(&mut my_app).unwrap();
+                } else if poll_fds[1].all().unwrap_or_default() {
+                    let mut input = String::new();
+                    let _ = stdin.read_line(&mut input);
+                    let input_trim = input.trim();
 
-        if elapsed >= ONE_SEC {
-            debug!("update");
-            let buffer = my_painter.draw(&my_app);
-            buffer.attach_to(&my_app.wl_surface).unwrap();
-            my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-            my_app.wl_surface.commit();
-            last_update += ONE_SEC;
+                    let mut digits: [u32; 6] = [0; 6];
+                    if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_digit()) {
+                        for (i, part) in input_trim.chars().enumerate() {
+                            digits[i] = part.to_digit(10).unwrap();
+                        }
+                    } else {
+                        eprintln!("Invalid input");
+                    }
+
+                    let buffer = my_painter.draw(&my_app, digits);
+                    buffer.attach_to(&my_app.wl_surface).unwrap();
+                    my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+                    my_app.wl_surface.commit();
+                }
+            }
+            Ordering::Equal => std::mem::drop(read_guard),
+            Ordering::Less => eprintln!("poll failed"),
         }
     }
 }

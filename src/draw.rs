@@ -2,7 +2,7 @@ use smithay_client_toolkit::{
     reexports::client::protocol::wl_shm::{self},
     shm::slot::{Buffer, SlotPool},
 };
-use chrono::{Local, Timelike};
+// use chrono::{Local, Timelike};
 use rand::prelude::*;
 
 use crate::MyApp;
@@ -24,7 +24,7 @@ impl Painter {
             fg, bg
         }
     }
-    pub fn draw(&self, state: &MyApp) -> Buffer {
+    pub fn draw(&self, state: &MyApp, digits: [u32; 6]) -> Buffer {
         let mut slot_pool = SlotPool::new(MyApp::STORE_SIZE as usize, &state.shm).unwrap();
         let (buffer, arr) = slot_pool
             .create_buffer(
@@ -34,24 +34,23 @@ impl Painter {
                 wl_shm::Format::Argb8888,
             )
             .unwrap();
-        self.draw_time(arr);
+        self.draw_digits(arr, digits);
         buffer
     }
 
-    fn draw_time(&self, v: &mut [u8]) {
-        let now = Local::now();
-        let (hours, minutes, seconds) = (
-            now.time().hour(),
-            now.time().minute(),
-            now.time().second(),
-        );
-        let mut digits: [u32; 6] = [0; 6];
-        digits[0] = hours / 10;
-        digits[1] = hours % 10;
-        digits[2] = minutes / 10;
-        digits[3] = minutes % 10;
-        digits[4] = seconds / 10;
-        digits[5] = seconds % 10;
+    fn draw_digits(&self, v: &mut [u8], digits: [u32; 6]) {
+        // let now = Local::now();
+        // let (hours, minutes, seconds) = (
+        //     now.time().hour(),
+        //     now.time().minute(),
+        //     now.time().second(),
+        // );
+        // digits[0] = hours / 10;
+        // digits[1] = hours % 10;
+        // digits[2] = minutes / 10;
+        // digits[3] = minutes % 10;
+        // digits[4] = seconds / 10;
+        // digits[5] = seconds % 10;
 
         for (idx, dg) in digits.iter().enumerate() {
             for (idy, b) in mkmask(*dg).iter().enumerate() {

@@ -5,16 +5,19 @@ use std::time::{Duration, SystemTime};
 use std::os::fd::AsRawFd;
 use crate::debug;
 
+/*
+I was almost tempted to use some third-party event crate because
+neither can you poll(2) on a mpsc::channel as fd
+nor read_line() easily on a fd.
+Unix manual really helped me a lot.
+ */
 pub fn initialize_timer() {
     let (read_fd, write_fd) = pipe().unwrap();
-    let read_fd_raw = read_fd.as_raw_fd();
-    let _ = dup2(read_fd_raw, 0);
-    drop(read_fd); // DeepSeek
+    dup2(read_fd.as_raw_fd(), 0).unwrap();
     thread::spawn(move || loop {
-        let fd_ref = &write_fd;
         let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
         thread::sleep(Duration::from_secs(1) - Duration::from_millis(diff.into()));
-        let _ = write(fd_ref, &time_digits());
+        let _ = write(&write_fd, &time_digits());
         debug!("tick");
     });
 }

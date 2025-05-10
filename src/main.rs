@@ -263,12 +263,12 @@ fn main() {
         let read_guard = event_queue.prepare_read().unwrap();
         let wl_fd = read_guard.connection_fd();
 
-        // Wait for events or timeout.
         let mut poll_fds =
             [PollFd::new(wl_fd, PollFlags::POLLIN),
              PollFd::new(stdin.as_fd(), PollFlags::POLLIN)];
 
         let poll_ret = poll(&mut poll_fds, PollTimeout::NONE).unwrap();
+
         match poll_ret.cmp(&0) { // thank you clippy to make my code more rusty
             Ordering::Greater => {
                 debug!("poll > 0");
@@ -281,6 +281,7 @@ fn main() {
                     let input_trim = input.trim();
 
                     let mut digits: [u32; 6] = [0; 6];
+                    // check sanity (6-digit number)
                     if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_digit()) {
                         for (i, part) in input_trim.chars().enumerate() {
                             digits[i] = part.to_digit(10).unwrap();

@@ -15,6 +15,9 @@ pub struct Args {
     /// bitfield top=1 bottom=2 left=4 right=8
     #[clap(long, short, default_value = "9")]
     pub anchor: u32,
+    /// use stdin as timer source
+    #[clap(long, short)]
+    pub pipe: bool,
 }
 
 fn parse_palette(s: &str) -> Result<Palette, ParseIntError> {

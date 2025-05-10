@@ -30,12 +30,14 @@ use std::cmp::Ordering;
 mod draw;
 mod args;
 mod log;
+mod timer;
 
 struct MyApp {
     wl_surface: WlSurface,
     shm: Shm,
     width: u32,
     height: u32,
+    configured: bool,
 }
 
 impl MyApp {
@@ -50,6 +52,7 @@ impl MyApp {
             shm,
             width: Self::WIDTH,
             height: Self::HEIGHT,
+            configured: false,
         }
     }
 }
@@ -193,6 +196,7 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 _proxy.ack_configure(serial);
                 state.width = width;
                 state.height = height;
+                state.configured = true;
             }
             zwlr_layer_surface_v1::Event::Closed => {}
             _ => (),
@@ -244,12 +248,15 @@ fn main() {
     //获得wl_shm全局对象
     let shm = Shm::bind(&glist, &event_queue.handle()).unwrap();
 
+
     let mut my_app = MyApp::new(wl_surface, shm);
-    // CONFIG 0xAARRGGBB
-    // let my_painter = draw::Painter::new(draw::Color::Multi(vec![0x80e8b6, 0xa1fff9, 0xbd7cf8, 0x7288f6]), draw::Color::Mono(0xffffff));
     let my_painter = draw::Painter::new(args.fg, args.bg);
 
+    let mut input = String::new();
     let stdin = std::io::stdin();
+    if !args.pipe {
+        timer::initialize_timer();
+    }
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
@@ -269,7 +276,7 @@ fn main() {
                     read_guard.read().unwrap();
                     event_queue.dispatch_pending(&mut my_app).unwrap();
                 } else if poll_fds[1].all().unwrap_or_default() {
-                    let mut input = String::new();
+                    input.clear();
                     let _ = stdin.read_line(&mut input);
                     let input_trim = input.trim();
 
@@ -282,10 +289,14 @@ fn main() {
                         eprintln!("Invalid input");
                     }
 
-                    let buffer = my_painter.draw(&my_app, digits);
-                    buffer.attach_to(&my_app.wl_surface).unwrap();
-                    my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
-                    my_app.wl_surface.commit();
+                    if my_app.configured {
+                        let buffer = my_painter.draw(&my_app, digits);
+                        buffer.attach_to(&my_app.wl_surface).unwrap();
+                        my_app.wl_surface.damage(0, 0, i32::MAX, i32::MAX);
+                        my_app.wl_surface.commit();
+                    }
+                } else {
+                    debug!("whatever");
                 }
             }
             Ordering::Equal => std::mem::drop(read_guard),

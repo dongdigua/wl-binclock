@@ -39,18 +39,6 @@ impl Painter {
     }
 
     fn draw_digits(&self, v: &mut [u8], digits: [u32; 6]) {
-        // let now = Local::now();
-        // let (hours, minutes, seconds) = (
-        //     now.time().hour(),
-        //     now.time().minute(),
-        //     now.time().second(),
-        // );
-        // digits[0] = hours / 10;
-        // digits[1] = hours % 10;
-        // digits[2] = minutes / 10;
-        // digits[3] = minutes % 10;
-        // digits[4] = seconds / 10;
-        // digits[5] = seconds % 10;
 
         for (idx, dg) in digits.iter().enumerate() {
             for (idy, b) in mkmask(*dg).iter().enumerate() {

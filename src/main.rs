@@ -282,9 +282,9 @@ fn main() {
 
                     let mut digits: [u32; 6] = [0; 6];
                     // check sanity (6-digit number)
-                    if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_digit()) {
+                    if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_hexdigit()) {
                         for (i, part) in input_trim.chars().enumerate() {
-                            digits[i] = part.to_digit(10).unwrap();
+                            digits[i] = part.to_digit(16).unwrap();
                         }
                     } else {
                         eprintln!("Invalid input");

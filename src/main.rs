@@ -35,6 +35,7 @@ struct MyApp {
     shm: Shm,
     width: u32,
     height: u32,
+    configured: bool,
 }
 
 impl MyApp {
@@ -49,6 +50,7 @@ impl MyApp {
             shm,
             width: Self::WIDTH,
             height: Self::HEIGHT,
+            configured: false,
         }
     }
 }
@@ -192,6 +194,7 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
                 _proxy.ack_configure(serial);
                 state.width = width;
                 state.height = height;
+                state.configured = true;
             }
             zwlr_layer_surface_v1::Event::Closed => {}
             _ => (),
@@ -251,7 +254,7 @@ fn main() {
     const ONE_SEC: Duration = Duration::from_secs(1);
     let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
     debug!("diff: 0.{}s", diff);
-    let mut last_update = Instant::now() - Duration::from_millis(diff.into());
+    let mut last_update = Instant::now() - ONE_SEC - Duration::from_millis(diff.into());
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
@@ -283,7 +286,7 @@ fn main() {
             eprintln!("poll failed");
         }
 
-        if elapsed >= ONE_SEC {
+        if elapsed >= ONE_SEC && my_app.configured {
             debug!("update");
             let buffer = my_painter.draw(&my_app);
             buffer.attach_to(&my_app.wl_surface).unwrap();

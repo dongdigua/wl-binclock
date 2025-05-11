@@ -1,8 +1,7 @@
-use nix::unistd::{pipe, dup2, write};
+use nix::unistd::{pipe, dup2_stdin, write};
 use chrono::{Local, Timelike};
 use std::thread;
 use std::time::{Duration, SystemTime};
-use std::os::fd::AsRawFd;
 use crate::debug;
 
 /*
@@ -13,7 +12,7 @@ Unix manual really helped me a lot.
  */
 pub fn initialize_timer() {
     let (read_fd, write_fd) = pipe().unwrap();
-    dup2(read_fd.as_raw_fd(), 0).unwrap();
+    dup2_stdin(read_fd).unwrap();
     thread::spawn(move || loop {
         let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
         thread::sleep(Duration::from_secs(1) - Duration::from_millis(diff.into()));
@@ -36,7 +35,7 @@ fn time_digits() -> [u8; 7] {
     digits[3] = minutes % 10;
     digits[4] = seconds / 10;
     digits[5] = seconds % 10;
-    digits.iter_mut().for_each(|x| *x += 48);
+    digits.iter_mut().for_each(|x| *x += b'0');
     digits[6] = b'\n';
     digits
 }

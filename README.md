@@ -20,6 +20,11 @@ or with image
 ![](demos/demo_shroom.png)
 ![](demos/demo_obsidian.png)
 
+or with external "timer"
+
+![](demos/ipc_gol.gif)
+![](demos/ipc_dongdigua.gif)
+
 
 ## Usage
 ```
@@ -30,7 +35,7 @@ wl-binclock --anchor 9  # top-right (top=1 bottom=2 left=4 right=8)
 ```
 
 ## Usage: Advanced (IPC)
-You can pipe 6-digit numbers into stdin when `--pipe` is enabled.
+You can pipe 6-hexdigit numbers into stdin when `--pipe` is enabled.
 ```
 command | wl-binclock --pipe
 wl-binclock --pipe < fifo

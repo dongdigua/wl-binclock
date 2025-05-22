@@ -13,12 +13,12 @@ Unix manual really helped me a lot.
 pub fn initialize_timer() {
     let (read_fd, write_fd) = pipe().unwrap();
     dup2_stdin(read_fd).unwrap();
-    thread::spawn(move || loop {
+    thread::Builder::new().name("timer".to_string()).spawn(move || loop {
         let diff = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_millis();
         thread::sleep(Duration::from_secs(1) - Duration::from_millis(diff.into()));
         let _ = write(&write_fd, &time_digits());
         debug!("tick");
-    });
+    }).unwrap();
 }
 
 fn time_digits() -> [u8; 7] {

@@ -41,6 +41,8 @@ command | wl-binclock --pipe
 wl-binclock --pipe < fifo
 ```
 
+[tutorial](https://www.bilibili.com/video/BV1oMN7zBEsv)
+
 ## Package
 - [AUR](https://aur.archlinux.org/packages/wl-binclock)
 

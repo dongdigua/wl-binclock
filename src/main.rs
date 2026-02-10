@@ -259,7 +259,7 @@ fn main() {
     let stdin = std::io::stdin();
 
     let timer = if !args.pipe {
-        let t = TimerFd::new(ClockId::CLOCK_MONOTONIC, TimerFlags::empty()).unwrap();
+        let t = TimerFd::new(ClockId::CLOCK_REALTIME, TimerFlags::empty()).unwrap();
         let diff = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -292,7 +292,6 @@ fn main() {
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
-        let read_guard = event_queue.prepare_read().unwrap();
 
         let poll_ret = poll(&mut poll_fds[..], PollTimeout::NONE).unwrap();
 
@@ -300,8 +299,7 @@ fn main() {
             Ordering::Greater => {
                 debug!("poll > 0");
                 if poll_fds[0].all().unwrap_or_default() {
-                    read_guard.read().unwrap();
-                    event_queue.dispatch_pending(&mut my_app).unwrap();
+                    event_queue.blocking_dispatch(&mut my_app).unwrap();
                 }
                 if poll_fds[1].any().unwrap_or_default() {
                     match poll_fds[1].revents() {
@@ -348,7 +346,7 @@ fn main() {
                     }
                 }
             }
-            Ordering::Equal => std::mem::drop(read_guard),
+            Ordering::Equal => (),
             Ordering::Less => eprintln!("poll failed"),
         }
     }

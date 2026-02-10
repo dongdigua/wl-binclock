@@ -24,7 +24,7 @@ impl Painter {
             fg, bg
         }
     }
-    pub fn draw(&self, state: &MyApp, digits: [u32; 6]) -> Buffer {
+    pub fn draw(&self, state: &MyApp, digits: [u8; 6]) -> Buffer {
         let mut slot_pool = SlotPool::new(MyApp::STORE_SIZE as usize, &state.shm).unwrap();
         let (buffer, arr) = slot_pool
             .create_buffer(
@@ -38,7 +38,7 @@ impl Painter {
         buffer
     }
 
-    fn draw_digits(&self, v: &mut [u8], digits: [u32; 6]) {
+    fn draw_digits(&self, v: &mut [u8], digits: [u8; 6]) {
 
         for (idx, dg) in digits.iter().enumerate() {
             for (idy, b) in mkmask(*dg).iter().enumerate() {
@@ -53,7 +53,7 @@ impl Painter {
 
 }
 
-fn draw_point(v: &mut [u8], x: usize, y: usize, palette: &Vec<Palette>) {
+fn draw_point(v: &mut [u8], x: usize, y: usize, palette: &[Palette]) {
     let mut rng = rand::rng();
     let chosen = palette.choose(&mut rng).unwrap();
 
@@ -69,8 +69,7 @@ fn draw_point(v: &mut [u8], x: usize, y: usize, palette: &Vec<Palette>) {
     }
 }
 
-// 查表法哈哈
-fn mkmask(num: u32) -> [u32; 4]{
+fn mkmask(num: u8) -> [u8; 4]{
     [
         (num >> 3) & 0x1,
         (num >> 2) & 0x1,

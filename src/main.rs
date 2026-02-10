@@ -23,14 +23,17 @@ use smithay_client_toolkit::{
     shm::{Shm, ShmHandler},
 };
 use clap::Parser;
-use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
+use nix::{
+    poll::{PollFd, PollFlags, PollTimeout, poll},
+    sys::{time::{TimeSpec, TimeValLike}, timerfd::{TimerFd, TimerFlags, TimerSetTimeFlags, Expiration, ClockId}},
+};
 use std::os::fd::AsFd;
+use chrono::{Local, Timelike};
 use std::cmp::Ordering;
 
 mod draw;
 mod args;
 mod log;
-mod timer;
 
 struct MyApp {
     wl_surface: WlSurface,
@@ -206,7 +209,7 @@ impl Dispatch<ZwlrLayerSurfaceV1, MyUserData> for MyApp {
 
 impl ShmHandler for MyApp {
     fn shm_state(&mut self) -> &mut Shm {
-        todo!()
+        &mut self.shm
     }
 }
 
@@ -254,20 +257,44 @@ fn main() {
 
     let mut input = String::new();
     let stdin = std::io::stdin();
-    if !args.pipe {
-        timer::initialize_timer();
-    }
+
+    let timer = if !args.pipe {
+        let t = TimerFd::new(ClockId::CLOCK_MONOTONIC, TimerFlags::empty()).unwrap();
+        let diff = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .subsec_millis();
+        t.set(
+            Expiration::IntervalDelayed(
+                TimeSpec::milliseconds(1000 - diff as i64),
+                TimeSpec::seconds(1),
+            ),
+            TimerSetTimeFlags::empty(),
+        )
+        .unwrap();
+        Some(t)
+    } else {
+        None
+    };
+
+    let mut poll_fds = [
+        PollFd::new(conn.as_fd(), PollFlags::POLLIN),
+        PollFd::new(
+            if args.pipe {
+                stdin.as_fd()
+            } else {
+                timer.as_ref().unwrap().as_fd()
+            },
+            PollFlags::POLLIN,
+        ),
+    ];
+
     loop {
         // https://docs.rs/wayland-client/latest/wayland_client/struct.EventQueue.html#integrating-the-event-queue-with-other-sources-of-events
         event_queue.flush().unwrap();
         let read_guard = event_queue.prepare_read().unwrap();
-        let wl_fd = read_guard.connection_fd();
 
-        let mut poll_fds =
-            [PollFd::new(wl_fd, PollFlags::POLLIN),
-             PollFd::new(stdin.as_fd(), PollFlags::POLLIN)];
-
-        let poll_ret = poll(&mut poll_fds, PollTimeout::NONE).unwrap();
+        let poll_ret = poll(&mut poll_fds[..], PollTimeout::NONE).unwrap();
 
         match poll_ret.cmp(&0) { // thank you clippy to make my code more rusty
             Ordering::Greater => {
@@ -275,21 +302,38 @@ fn main() {
                 if poll_fds[0].all().unwrap_or_default() {
                     read_guard.read().unwrap();
                     event_queue.dispatch_pending(&mut my_app).unwrap();
-                } else if poll_fds[1].any().unwrap_or_default() {
+                }
+                if poll_fds[1].any().unwrap_or_default() {
                     match poll_fds[1].revents() {
                         Some(PollFlags::POLLIN) => {
-                            input.clear();
-                            let _ = stdin.read_line(&mut input);
-                            let input_trim = input.trim();
+                            let mut digits: [u8; 6] = [0; 6];
+                            if args.pipe {
+                                input.clear();
+                                let _ = stdin.read_line(&mut input);
+                                let input_trim = input.trim();
 
-                            let mut digits: [u32; 6] = [0; 6];
-                            // check sanity (6-digit number)
-                            if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_hexdigit()) {
-                                for (i, part) in input_trim.chars().enumerate() {
-                                    digits[i] = part.to_digit(16).unwrap();
+                                // check sanity (6-digit number)
+                                if input_trim.len() == 6 && input_trim.chars().all(|x| x.is_ascii_hexdigit()) {
+                                    for (i, part) in input_trim.chars().enumerate() {
+                                        digits[i] = part.to_digit(16).unwrap() as u8;
+                                    }
+                                } else {
+                                    eprintln!("Invalid input");
                                 }
                             } else {
-                                eprintln!("Invalid input");
+                                timer.as_ref().unwrap().wait().unwrap(); // this should return immediately
+                                let now = Local::now();
+                                let (hours, minutes, seconds) = (
+                                    now.time().hour() as u8,
+                                    now.time().minute() as u8,
+                                    now.time().second() as u8,
+                                );
+                                digits[0] = hours / 10;
+                                digits[1] = hours % 10;
+                                digits[2] = minutes / 10;
+                                digits[3] = minutes % 10;
+                                digits[4] = seconds / 10;
+                                digits[5] = seconds % 10;
                             }
 
                             if my_app.configured {
@@ -300,10 +344,8 @@ fn main() {
                             }
                         }
                         Some(PollFlags::POLLHUP) => panic!("broken pipe"),
-                        what => panic!("stdin: {:?}", what)
+                        what => panic!("poll: {:?}", what)
                     }
-                } else {
-                    debug!("whatever");
                 }
             }
             Ordering::Equal => std::mem::drop(read_guard),

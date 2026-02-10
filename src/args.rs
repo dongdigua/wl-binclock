@@ -28,8 +28,8 @@ fn parse_palette(s: &str) -> Result<Palette, ParseIntError> {
                 Err(e) => Err(e)
             }
         None => {
-            // DeepSeek
-            let img = image::open(s).expect(&format!("Failed to open image: {}", s));
+            let img = image::open(s)
+                .unwrap_or_else(|_| panic!("Failed to open image: {}", s)); // clippy
             let rgba_img = img.into_rgba8();
             let raw_data = rgba_img.into_raw();
             let argb_pixels: Vec<_> = raw_data
